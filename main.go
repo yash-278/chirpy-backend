@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -19,17 +18,21 @@ func main() {
 	const port = "8000"
 
 	r := chi.NewRouter()
-	mux := http.NewServeMux()
+	apiRouter := chi.NewRouter()
+	adminRouter := chi.NewRouter()
 
 	fileServerhandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("."))))
 	r.Handle("/app", fileServerhandler)
 	r.Handle("/app/*", fileServerhandler)
 
-	r.Get("/healthz", handleReadiness)
+	adminRouter.Get("/metrics", apiCfg.handleMetrics)
 
-	r.Get("/metrics", apiCfg.handleMetrics)
-	mux.HandleFunc("/reset", apiCfg.reset)
+	apiRouter.Get("/healthz", handleReadiness)
+	apiRouter.Get("/reset", apiCfg.reset)
+	apiRouter.Post("/validate_chirp", validateChirp)
 
+	r.Mount("/admin", adminRouter)
+	r.Mount("/api", apiRouter)
 	corsMux := middlewareCors(r)
 
 	srv := &http.Server{
@@ -39,18 +42,4 @@ func main() {
 
 	log.Printf("Serving on port: %s\n", port)
 	log.Fatal(srv.ListenAndServe())
-}
-
-func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileserverHits++
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (cfg *apiConfig) handleMetrics(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	metric := fmt.Sprintf("Hits: %v", cfg.fileserverHits)
-	w.Write([]byte(metric))
 }
