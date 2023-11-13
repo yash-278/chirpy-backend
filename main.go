@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/yash-278/chirpy-backend/database"
 )
 
 type apiConfig struct {
@@ -15,11 +16,20 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: 0,
 	}
+
+	DB, _ := database.NewDB("database.json")
 	const port = "8000"
 
 	r := chi.NewRouter()
 	apiRouter := chi.NewRouter()
 	adminRouter := chi.NewRouter()
+
+	// Wrap the middlewareDb function to match the expected signature
+	dbMiddleware := func(next http.Handler) http.Handler {
+		return middlewareDb(next, DB)
+	}
+
+	apiRouter.Use(dbMiddleware)
 
 	fileServerhandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("."))))
 	r.Handle("/app", fileServerhandler)
@@ -29,7 +39,9 @@ func main() {
 
 	apiRouter.Get("/healthz", handleReadiness)
 	apiRouter.Get("/reset", apiCfg.reset)
-	apiRouter.Post("/validate_chirp", validateChirp)
+
+	apiRouter.Post("/chirps", addChirp)
+	apiRouter.Get("/chirps", getChirps)
 
 	r.Mount("/admin", adminRouter)
 	r.Mount("/api", apiRouter)
