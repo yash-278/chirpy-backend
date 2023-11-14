@@ -89,7 +89,7 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 // ensureDB creates a new database file if it doesn't exist
 func (db *DB) ensureDB() error {
 	_, err := os.ReadFile(db.path)
-	if err != nil {
+	if errors.Is(err, os.ErrNotExist) {
 		dbData := DBStructure{}
 
 		rawData, err := json.Marshal(dbData)

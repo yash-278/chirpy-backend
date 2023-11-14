@@ -10,26 +10,22 @@ import (
 
 type apiConfig struct {
 	fileserverHits int
+	DB             *database.DB
 }
 
 func main() {
+	DB, _ := database.NewDB("database.json")
+
+	const port = "8080"
+
 	apiCfg := apiConfig{
 		fileserverHits: 0,
+		DB:             DB,
 	}
-
-	DB, _ := database.NewDB("database.json")
-	const port = "8000"
 
 	r := chi.NewRouter()
 	apiRouter := chi.NewRouter()
 	adminRouter := chi.NewRouter()
-
-	// Wrap the middlewareDb function to match the expected signature
-	dbMiddleware := func(next http.Handler) http.Handler {
-		return middlewareDb(next, DB)
-	}
-
-	apiRouter.Use(dbMiddleware)
 
 	fileServerhandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("."))))
 	r.Handle("/app", fileServerhandler)
@@ -40,8 +36,8 @@ func main() {
 	apiRouter.Get("/healthz", handleReadiness)
 	apiRouter.Get("/reset", apiCfg.reset)
 
-	apiRouter.Post("/chirps", addChirp)
-	apiRouter.Get("/chirps", getChirps)
+	apiRouter.Post("/chirps", apiCfg.addChirp)
+	apiRouter.Get("/chirps", apiCfg.getChirps)
 
 	r.Mount("/admin", adminRouter)
 	r.Mount("/api", apiRouter)

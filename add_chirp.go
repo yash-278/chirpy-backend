@@ -5,12 +5,9 @@ import (
 	"log"
 	"net/http"
 	"sort"
-
-	"github.com/yash-278/chirpy-backend/database"
 )
 
-func addChirp(w http.ResponseWriter, r *http.Request) {
-	db := r.Context().Value(dbKey).(*database.DB)
+func (cfg *apiConfig) addChirp(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
@@ -30,7 +27,7 @@ func addChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newChirp, err := db.CreateChirp(chirpStr)
+	newChirp, err := cfg.DB.CreateChirp(chirpStr)
 	if err != nil {
 		respondWithError(w, 400, err.Error())
 	}
@@ -38,10 +35,9 @@ func addChirp(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, 201, newChirp)
 }
 
-func getChirps(w http.ResponseWriter, r *http.Request) {
-	db := r.Context().Value(dbKey).(*database.DB)
+func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 
-	chirps, err := db.GetChirps()
+	chirps, err := cfg.DB.GetChirps()
 	if err != nil {
 		respondWithError(w, 400, err.Error())
 	}
