@@ -40,6 +40,8 @@ func main() {
 	apiRouter.Get("/chirps", apiCfg.getChirps)
 	apiRouter.Get("/chirps/{id}", apiCfg.getChirp)
 
+	apiRouter.Post("/users", apiCfg.addUser)
+
 	r.Mount("/admin", adminRouter)
 	r.Mount("/api", apiRouter)
 	corsMux := middlewareCors(r)
