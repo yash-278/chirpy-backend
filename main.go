@@ -42,6 +42,8 @@ func main() {
 
 	apiRouter.Post("/users", apiCfg.addUser)
 
+	apiRouter.Post("/login", apiCfg.loginUser)
+
 	r.Mount("/admin", adminRouter)
 	r.Mount("/api", apiRouter)
 	corsMux := middlewareCors(r)

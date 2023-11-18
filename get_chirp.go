@@ -15,11 +15,13 @@ func (cfg *apiConfig) getChirp(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		respondWithError(w, 500, err.Error())
+		return
 	}
 
 	chirp, err := cfg.DB.GetChirpById(id)
 	if err != nil {
 		respondWithError(w, 404, err.Error())
+		return
 	}
 
 	respondWithJSON(w, 200, chirp)

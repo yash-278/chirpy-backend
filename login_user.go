@@ -6,12 +6,13 @@ import (
 	"net/http"
 )
 
-func (cfg *apiConfig) addChirp(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
-	params := parameters{}
+	params := userParams{}
 
 	err := decoder.Decode(&params)
+
 	if err != nil {
 		// an error will be thrown if the JSON is invalid or has the wrong types
 		// any missing fields will simply have their values in the struct set to their zero value
@@ -20,17 +21,11 @@ func (cfg *apiConfig) addChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chirpStr, err := validateChirp(params.Body)
+	userData, err := cfg.DB.LoginUser(params.Email, params.Password)
 	if err != nil {
-		respondWithError(w, 500, err.Error())
+		respondWithError(w, 401, err.Error())
 		return
 	}
 
-	newChirp, err := cfg.DB.CreateChirp(chirpStr)
-	if err != nil {
-		respondWithError(w, 400, err.Error())
-		return
-	}
-
-	respondWithJSON(w, 201, newChirp)
+	respondWithJSON(w, 200, userData)
 }

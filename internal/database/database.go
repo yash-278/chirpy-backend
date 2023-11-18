@@ -5,6 +5,8 @@ import (
 	"errors"
 	"os"
 	"sync"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type DBStructure struct {
@@ -18,13 +20,19 @@ type Chirp struct {
 }
 
 type User struct {
-	Id    int    `json:"id"`
-	Email string `json:"email"`
+	Id       int    `json:"id"`
+	Email    string `json:"email"`
+	Password []byte `json:"password"`
 }
 
 type DB struct {
 	path string
 	mux  *sync.RWMutex
+}
+
+type ResponseUser struct {
+	Id    int    `json:"id"`
+	Email string `json:"email"`
 }
 
 // NewDB creates a new database connection
@@ -99,20 +107,53 @@ func (db *DB) GetChirpById(chirpId int) (Chirp, error) {
 }
 
 // CreateChirp creates a new chirp and saves it to disk
-func (db *DB) CreateUser(body string) (User, error) {
+func (db *DB) CreateUser(email, password string) (ResponseUser, error) {
 	DBStruct, _ := db.loadDB()
-	userLen := len(DBStruct.Users)
 
-	newId := userLen + 1
-	user := User{
-		Id:    newId,
-		Email: body,
+	_, err := db.getUser(email)
+	if err != nil {
+		return ResponseUser{}, errors.New("user with the email already exists")
 	}
-	DBStruct.Users[newId] = user
 
-	db.writeDB(DBStruct)
+	newId := len(DBStruct.Users) + 1
 
-	return user, nil
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), 10)
+	if err != nil {
+		return ResponseUser{}, errors.New("password Has Failed")
+	}
+
+	DBStruct.Users[newId] = User{
+		Id:       newId,
+		Email:    email,
+		Password: hash,
+	}
+
+	err = db.writeDB(DBStruct)
+	if err != nil {
+		return ResponseUser{}, err
+	}
+
+	return ResponseUser{
+		Id:    newId,
+		Email: email,
+	}, nil
+}
+
+func (db *DB) LoginUser(email, password string) (ResponseUser, error) {
+	user, err := db.getUser(email)
+	if err != nil {
+		return ResponseUser{}, errors.New("user does not exists")
+	}
+
+	err = bcrypt.CompareHashAndPassword(user.Password, []byte(password))
+	if err != nil {
+		return ResponseUser{}, errors.New("password is incorrect")
+	}
+
+	return ResponseUser{
+		user.Id,
+		user.Email,
+	}, nil
 }
 
 // ensureDB creates a new database file if it doesn't exist
@@ -178,4 +219,26 @@ func (db *DB) writeDB(dbStructure DBStructure) error {
 	}
 
 	return nil
+}
+
+func (db *DB) getUser(email string) (User, error) {
+	user := User{}
+	database, err := db.loadDB()
+
+	if err != nil {
+		return user, errors.New("DB not loaded")
+	}
+
+	if len(database.Users) == 0 {
+		return user, nil
+	}
+
+	for _, u := range database.Users {
+		if u.Email == email {
+			user = u
+		}
+		return user, nil
+	}
+
+	return user, errors.New("user not found")
 }
