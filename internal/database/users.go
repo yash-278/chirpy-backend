@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"fmt"
 )
 
 type User struct {
@@ -12,7 +13,6 @@ type User struct {
 
 var ErrAlreadyExists = errors.New("already exists")
 
-// CreateChirp creates a new chirp and saves it to disk
 func (db *DB) CreateUser(email, hashed_password string) (User, error) {
 	DBStruct, _ := db.loadDB()
 
@@ -65,4 +65,33 @@ func (db *DB) GetUserByEmail(email string) (User, error) {
 	}
 
 	return User{}, ErrNotExist
+}
+
+func (db *DB) UpdateUser(id int, email, hashedPassword string) (User, error) {
+	DBStruct, _ := db.loadDB()
+
+	user, err := db.GetUser(id)
+	if err != nil {
+		return User{}, err
+	}
+
+	// Update fields only if they are not empty
+	if email != "" {
+		user.Email = email
+	}
+
+	if hashedPassword != "" {
+		user.HashedPassword = hashedPassword
+	}
+
+	// If you have more fields, add similar conditions for each field
+	fmt.Println(email)
+	DBStruct.Users[id] = user
+
+	err = db.writeDB(DBStruct)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
 }

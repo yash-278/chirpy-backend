@@ -9,11 +9,14 @@ import (
 
 func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Password string `json:"password"`
-		Email    string `json:"email"`
+		Password         string `json:"password"`
+		Email            string `json:"email"`
+		ExpiresInSeconds int    `json:"expires_in_seconds"`
 	}
 	type response struct {
-		User
+		ID    int    `json:"id"`
+		Email string `json:"email"`
+		Token string `json:"token"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -36,10 +39,15 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	jwtKey, err := auth.CreateJWT(cfg.secretKey, user.Id, params.ExpiresInSeconds)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
 	respondWithJSON(w, http.StatusOK, response{
-		User: User{
-			ID:    user.Id,
-			Email: user.Email,
-		},
+		ID:    user.Id,
+		Email: user.Email,
+		Token: jwtKey,
 	})
 }

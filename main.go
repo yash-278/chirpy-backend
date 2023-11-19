@@ -3,17 +3,27 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
 	"github.com/yash-278/chirpy-backend/database"
 )
 
 type apiConfig struct {
 	fileserverHits int
 	DB             *database.DB
+	secretKey      string
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	secretKey := os.Getenv("JWT_SECRET")
+
 	DB, _ := database.NewDB("database.json")
 
 	const port = "8080"
@@ -21,6 +31,7 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: 0,
 		DB:             DB,
+		secretKey:      secretKey,
 	}
 
 	r := chi.NewRouter()
@@ -41,6 +52,7 @@ func main() {
 	apiRouter.Get("/chirps/{id}", apiCfg.getChirp)
 
 	apiRouter.Post("/users", apiCfg.addUser)
+	apiRouter.Put("/users", apiCfg.handlerUserUpdate)
 
 	apiRouter.Post("/login", apiCfg.loginUser)
 
