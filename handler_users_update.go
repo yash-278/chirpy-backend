@@ -27,9 +27,13 @@ func (cfg *apiConfig) handlerUserUpdate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	strId, err := auth.ValidateJWT(token, cfg.secretKey)
+	claims, err := auth.ValidateJWT(token, cfg.secretKey)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if sub, _ := claims.GetIssuer(); sub != auth.Issuer.AccessIssuer {
+		respondWithError(w, http.StatusUnauthorized, "Bad Token")
 		return
 	}
 
@@ -40,6 +44,8 @@ func (cfg *apiConfig) handlerUserUpdate(w http.ResponseWriter, r *http.Request) 
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
 		return
 	}
+
+	strId, _ := claims.GetSubject()
 
 	id, err := strconv.Atoi(strId)
 	if err != nil {

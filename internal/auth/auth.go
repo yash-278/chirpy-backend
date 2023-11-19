@@ -8,6 +8,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var AccessTokenExpireTime int = 1
+var RefreshTokenExpireTime int = 1440
+
+type IssuerType struct {
+	AccessIssuer  string
+	RefreshIssuer string
+}
+
+var Issuer = IssuerType{
+	AccessIssuer:  "chirpy-access",
+	RefreshIssuer: "chirpy-refresh",
+}
+
 // HashPassword -
 func HashPassword(password string) (string, error) {
 	dat, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -22,18 +35,14 @@ func CheckPasswordHash(password, hash string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }
 
-func CreateJWT(key string, id, expiresInSeconds int) (string, error) {
-
-	if expiresInSeconds == 0 {
-		expiresInSeconds = 86400
-	}
+func CreateJWT(key, issuer string, id, expireTimeInSeconds int) (string, error) {
 
 	currentTime := time.Now().UTC()
 	issueTime := jwt.NewNumericDate(currentTime)
-	expireTime := jwt.NewNumericDate(currentTime.Add(time.Second * time.Duration(expiresInSeconds)))
+	expireTime := jwt.NewNumericDate(currentTime.Add(time.Hour * time.Duration(expireTimeInSeconds)))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer:    "chirpy",
+		Issuer:    issuer,
 		IssuedAt:  issueTime,
 		ExpiresAt: expireTime,
 		Subject:   fmt.Sprint(id),
@@ -48,19 +57,14 @@ func CreateJWT(key string, id, expiresInSeconds int) (string, error) {
 	return signedKey, nil
 }
 
-func ValidateJWT(jwtStr, key string) (string, error) {
+func ValidateJWT(jwtStr, key string) (jwt.Claims, error) {
 
 	token, err := jwt.ParseWithClaims(jwtStr, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(key), nil
 	})
 	if err != nil {
-		return "", err
+		return jwt.MapClaims{}, err
 	}
 
-	data, err := token.Claims.GetSubject()
-	if err != nil {
-		return "", err
-	}
-
-	return data, err
+	return token.Claims, err
 }
