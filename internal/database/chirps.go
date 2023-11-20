@@ -3,15 +3,16 @@ package database
 import "errors"
 
 // CreateChirp creates a new chirp and saves it to disk
-func (db *DB) CreateChirp(body string) (Chirp, error) {
+func (db *DB) CreateChirp(body string, userId int) (Chirp, error) {
 	DBStruct, _ := db.loadDB()
 	chirpLen := len(DBStruct.Chirps)
 	chirp := Chirp{}
 
 	newId := chirpLen + 1
 	chirp = Chirp{
-		Id:   newId,
-		Body: body,
+		Id:       newId,
+		Body:     body,
+		AuthorId: userId,
 	}
 	DBStruct.Chirps[newId] = chirp
 
@@ -51,4 +52,22 @@ func (db *DB) GetChirpById(chirpId int) (Chirp, error) {
 	}
 
 	return chirp, nil
+}
+
+// GetChirps returns a chirp in the database based on Id
+func (db *DB) DeleteChirpById(chirpId int) error {
+
+	DbData, err := db.loadDB()
+	if err != nil {
+		return errors.New("db cannot be loaded")
+	}
+
+	_, ok := DbData.Chirps[chirpId]
+	if !ok {
+		return ErrNotExist
+	}
+
+	delete(DbData.Chirps, chirpId)
+
+	return nil
 }

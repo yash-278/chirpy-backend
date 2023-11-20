@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/yash-278/chirpy-backend/auth"
 )
@@ -21,39 +20,20 @@ func (cfg *apiConfig) handlerUserUpdate(w http.ResponseWriter, r *http.Request) 
 		User
 	}
 
-	token := GetBearerToken(r)
-	if token == "" {
-		respondWithError(w, http.StatusUnauthorized, ErrInvalidCreds.Error())
-		return
-	}
-
-	claims, err := auth.ValidateJWT(token, cfg.secretKey)
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, err.Error())
-		return
-	}
-	if sub, _ := claims.GetIssuer(); sub != auth.Issuer.AccessIssuer {
-		respondWithError(w, http.StatusUnauthorized, "Bad Token")
-		return
-	}
-
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err = decoder.Decode(&params)
+	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
 		return
 	}
 
-	strId, _ := claims.GetSubject()
-
-	id, err := strconv.Atoi(strId)
+	userId, _, err := cfg.UtilAuthRequest(w, r, auth.Issuer.AccessIssuer)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-		return
+		respondWithError(w, http.StatusUnauthorized, err.Error())
 	}
 
-	user, err := cfg.DB.GetUser(id)
+	user, err := cfg.DB.GetUser(userId)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -69,7 +49,7 @@ func (cfg *apiConfig) handlerUserUpdate(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	user, err = cfg.DB.UpdateUser(id, params.Email, hashedPassword)
+	user, err = cfg.DB.UpdateUser(userId, params.Email, hashedPassword)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
