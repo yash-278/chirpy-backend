@@ -9,6 +9,7 @@ type User struct {
 	Id             int    `json:"id"`
 	Email          string `json:"email"`
 	HashedPassword string `json:"hashed_password"`
+	IsChirpyRed    bool   `json:"is_chirpy_red"`
 }
 
 var ErrAlreadyExists = errors.New("already exists")
@@ -26,6 +27,7 @@ func (db *DB) CreateUser(email, hashed_password string) (User, error) {
 		Id:             newId,
 		Email:          email,
 		HashedPassword: hashed_password,
+		IsChirpyRed:    false,
 	}
 
 	DBStruct.Users[newId] = newUser
@@ -67,7 +69,7 @@ func (db *DB) GetUserByEmail(email string) (User, error) {
 	return User{}, ErrNotExist
 }
 
-func (db *DB) UpdateUser(id int, email, hashedPassword string) (User, error) {
+func (db *DB) UpdateUser(id int, email, hashedPassword string, isChirpyRed bool) (User, error) {
 	DBStruct, _ := db.loadDB()
 
 	user, err := db.GetUser(id)
@@ -83,6 +85,8 @@ func (db *DB) UpdateUser(id int, email, hashedPassword string) (User, error) {
 	if hashedPassword != "" {
 		user.HashedPassword = hashedPassword
 	}
+
+	user.IsChirpyRed = isChirpyRed
 
 	// If you have more fields, add similar conditions for each field
 	fmt.Println(email)

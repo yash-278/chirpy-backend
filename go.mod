@@ -12,7 +12,7 @@ require (
 )
 
 require (
-	github.com/golang-jwt/jwt/v5 v5.1.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.1.0
 	golang.org/x/crypto v0.15.0 // indirect
 )
 

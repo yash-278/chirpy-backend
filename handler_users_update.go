@@ -49,7 +49,7 @@ func (cfg *apiConfig) handlerUserUpdate(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	user, err = cfg.DB.UpdateUser(userId, params.Email, hashedPassword)
+	user, err = cfg.DB.UpdateUser(userId, params.Email, hashedPassword, user.IsChirpyRed)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -57,8 +57,9 @@ func (cfg *apiConfig) handlerUserUpdate(w http.ResponseWriter, r *http.Request) 
 
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
-			ID:    user.Id,
-			Email: user.Email,
+			ID:          user.Id,
+			Email:       user.Email,
+			IsChirpyRed: user.IsChirpyRed,
 		},
 	})
 }
